@@ -1,32 +1,32 @@
-# screen-ast-demo — country dropdown benchmark
+# screen-ast-demo — computer-use benchmarks
 
-A tiny, self-contained **computer-use benchmark**: select **United States** in a dropdown,
-across three difficulty tiers on one page —
+A small suite of self-contained **computer-use tests**. Point a browser-use agent at one and
+score how it does — each page instruments itself on `window.FIXTURE`.
 
-- **native** `<select>` (easy)
-- **custom** scrollable div listbox (must scroll)
-- **virtualized** listbox (off-screen options aren't even in the DOM until scrolled near)
+**Live:** https://wwwaldo.github.io/screen-ast-demo/ (sidebar picks the test)
 
-The target sits ~95% down an alphabetical list of 195 countries, so naive scroll-hunting is
-slow. The interesting question: does the agent *recognize the ordering and jump*, or crawl?
+## The tests
 
-**Live:** https://wwwaldo.github.io/screen-ast-demo/
+| Test | Direct URL | What it probes |
+|---|---|---|
+| **Country Dropdown** | [`/country-dropdown.html`](https://wwwaldo.github.io/screen-ast-demo/country-dropdown.html) | Select "United States" in a dropdown across 3 tiers (native / custom / virtualized). Target ~95% down a 195-item alphabetical list — does the agent *recognize the ordering and jump*, or scroll-hunt? |
+| **Workday Form** | [`/workday-form.html`](https://wwwaldo.github.io/screen-ast-demo/workday-form.html) | Fill a Workday-style application: **15-deep div-soup**, all-custom div widgets (no native `<select>`/radios), **dependent** country→state, and a **state-gated submit** (`aria-disabled` until required present). A DOM-walker drowns; vision sees a clean form. |
 
-## Try it with a browser-use agent
+Each test is reachable at its own clean URL (so an agent gets top-level `window.FIXTURE`), and
+the root page is a sidebar shell to browse them with a "Check result" button.
 
-Point any computer-use agent at the URL and ask it to select **United States** in each of the
-three dropdowns. The page instruments itself so you can score the attempt.
+## Scoring — `window.FIXTURE`
 
-### Scoring API — `window.FIXTURE`
+Common:
+- `target` — what to achieve
+- `solved` — `null` until solved, then a result object (`{ ..., actions/ms/... }`)
+- `telemetry` — recorded interactions (`open`, `scroll`, `select`, `type`, `submit`, …)
+- `reset()` — reload
 
-- `target` — the country to select (`"United States"`)
-- `solved` — `null` until solved, then `{ variant, value, actions, opens, scrolls, ms }`
-- `telemetry` — `{ actions: [{type, detail, t}], opens, scrolls }`
-- `indexOf(name)` — alphabetical index of a country
-- override the target with `?target=Japan`
+Country Dropdown adds: `countries`, `indexOf(name)`, `?target=Japan` override.
+Workday Form adds: `required`, `values()`, `check()` (per-field correctness vs the target profile).
 
-Interaction types recorded: `open`, `scroll`, `select`, `solved`. Read `solved.actions` /
-`solved.ms` to compare an agent against the anchors: an oracle `page.select()` (~ms), a human
-(~15s), and a current pixel-scrolling agent (~2min).
+Compare an agent's `solved.ms` / action count against the anchors: oracle `page.select()` (~ms),
+a human (~15s), a current pixel-scrolling agent (~2min).
 
 Self-contained static HTML — no build, no dependencies.

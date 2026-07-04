@@ -1,0 +1,278 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>screen-ast · workday-style form test case</title>
+<style>
+  :root {
+    --bg:#f4f5f7; --card:#fff; --ink:#1c1c1c; --muted:#6b6b6b; --line:#c9ccd1;
+    --blue:#0763b8; --blue-2:#0a53a0; --req:#c5221f; --ok:#0a7a3f; --hover:#eef4fc;
+    --sans: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: ui-monospace, Menlo, Consolas, monospace;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font-family:var(--sans); font-size:14px; }
+  .topbar { background:var(--blue); color:#fff; padding:14px 22px; display:flex; align-items:center; gap:12px; }
+  .topbar .logo { width:26px; height:26px; border-radius:50%; background:#fff; color:var(--blue); font-weight:800;
+                  display:flex; align-items:center; justify-content:center; font-size:15px; }
+  .topbar h1 { font-size:16px; font-weight:600; margin:0; }
+  .topbar .step { margin-left:auto; font-size:12.5px; opacity:.9; }
+  .wrap { max-width:760px; margin:22px auto 90px; padding:0 16px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:4px; padding:24px 26px; box-shadow:0 1px 3px rgba(0,0,0,.06); }
+  .sec-title { font-size:16px; font-weight:700; margin:6px 0 4px; }
+  .sec-sub { color:var(--muted); font-size:13px; margin:0 0 18px; }
+  .group-title { font-weight:600; font-size:14px; margin:22px 0 12px; padding-bottom:6px; border-bottom:1px solid #e3e5e8; }
+  .wd-label { display:block; font-size:13px; color:#3c3c3c; margin:0 0 5px; font-weight:500; }
+  .wd-req { color:var(--req); margin-left:2px; }
+  .wd-input { width:100%; padding:8px 10px; font-size:14px; border:1px solid #9aa0a6; border-radius:3px;
+              font-family:var(--sans); background:#fff; color:var(--ink); }
+  .wd-input:focus { outline:none; border-color:var(--blue); box-shadow:0 0 0 1px var(--blue); }
+  .wd-field { margin-bottom:16px; }
+  /* custom select */
+  .wd-select { position:relative; }
+  .wd-select-button { width:100%; padding:8px 10px; font-size:14px; border:1px solid #9aa0a6; border-radius:3px;
+                      background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:space-between; }
+  .wd-select-button[aria-expanded="true"] { border-color:var(--blue); box-shadow:0 0 0 1px var(--blue); }
+  .wd-select-button.disabled { background:#f0f0f0; color:#9aa0a6; cursor:not-allowed; }
+  .wd-select-value.placeholder { color:#8a8f94; }
+  .wd-chevron { color:#6b6b6b; font-size:12px; }
+  .wd-listbox { position:absolute; z-index:30; top:calc(100% + 3px); left:0; right:0; background:#fff;
+                border:1px solid var(--line); border-radius:3px; box-shadow:0 8px 24px rgba(0,0,0,.16);
+                max-height:240px; overflow-y:auto; display:none; }
+  .wd-listbox.open { display:block; }
+  .wd-opt { padding:9px 12px; cursor:pointer; font-size:14px; }
+  .wd-opt:hover, .wd-opt.active { background:var(--hover); }
+  /* radio-as-div */
+  .wd-radio-group { display:flex; gap:10px; }
+  .wd-radio { border:1px solid #9aa0a6; border-radius:3px; padding:9px 20px; cursor:pointer; font-size:14px; user-select:none; }
+  .wd-radio.sel { border-color:var(--blue); background:var(--hover); box-shadow:inset 0 0 0 1px var(--blue); font-weight:600; }
+  /* submit */
+  .actions { margin-top:26px; display:flex; align-items:center; gap:14px; }
+  .wd-submit { background:var(--blue); color:#fff; border:none; border-radius:3px; padding:10px 26px; font-size:15px;
+               font-weight:600; cursor:pointer; font-family:var(--sans); }
+  .wd-submit[aria-disabled="true"] { background:#c9ccd1; color:#8a8f94; cursor:not-allowed; }
+  .msg { font-size:13px; }
+  .msg.err { color:var(--req); } .msg.ok { color:var(--ok); font-weight:600; }
+  .fielderr { color:var(--req); font-size:12px; margin-top:4px; display:none; }
+  .fielderr.show { display:block; }
+  /* telemetry */
+  .telem { max-width:760px; margin:16px auto; padding:0 16px; font-family:var(--mono); font-size:12px; color:var(--muted); }
+  .telem code { background:#e6e8eb; padding:1px 5px; border-radius:3px; }
+  .pill { font-family:var(--mono); font-size:11px; padding:2px 8px; border-radius:10px; background:#e6e8eb; color:#555; }
+  .pill.ok { background:#d9f2e3; color:var(--ok); }
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo">W</div>
+    <h1>Application — Software Engineer</h1>
+    <div class="step">Step 2 of 5 · My Information <span class="pill" id="status">incomplete</span></div>
+  </div>
+
+  <div class="wrap">
+    <div class="card">
+      <div class="sec-title">My Information</div>
+      <p class="sec-sub">Fields marked <span class="wd-req">*</span> are required. (Instrumented test fixture — the DOM is deliberately deep div-soup; the rendered form is clean.)</p>
+      <div id="form-root"></div>
+      <div class="actions">
+        <button class="wd-submit" id="submit" aria-disabled="true" data-automation-id="bottom-navigation-next">Submit</button>
+        <span class="msg" id="msg"></span>
+      </div>
+    </div>
+  </div>
+
+  <div class="telem">
+    Harness API on <code>window.FIXTURE</code>: <code>.target</code>, <code>.required</code>,
+    <code>.values()</code>, <code>.check()</code>, <code>.solved</code>, <code>.telemetry</code>, <code>.reset()</code>.
+    <div id="log" style="margin-top:8px; white-space:pre; max-height:120px; overflow:auto;"></div>
+  </div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---- what the agent must fill ----
+  var TARGET = {
+    firstName: "Ada", lastName: "Lovelace", email: "ada@navigator.dev", phone: "415-555-0142",
+    country: "United States", state: "California", source: "LinkedIn", authorized: "Yes",
+  };
+  var REQUIRED = ["firstName", "lastName", "email", "country", "state", "source", "authorized"];
+
+  var COUNTRIES = ["Australia", "Brazil", "Canada", "France", "Germany", "India", "Japan", "Mexico", "United Kingdom", "United States"];
+  var STATES = {
+    "United States": ["Alabama", "Arizona", "California", "Colorado", "Florida", "Georgia", "Illinois", "New York", "Texas", "Washington"],
+    "Canada": ["Alberta", "British Columbia", "Manitoba", "Ontario", "Quebec"],
+    "United Kingdom": ["England", "Northern Ireland", "Scotland", "Wales"],
+    "Australia": ["New South Wales", "Queensland", "Victoria", "Western Australia"],
+  };
+  var SOURCES = ["Company Website", "Glassdoor", "Indeed", "LinkedIn", "Referral", "Twitter / X", "University Career Fair", "Other"];
+
+  // ---- div-soup helpers ----
+  function cx() { return "css-" + Math.floor(Math.random() * 0xffffff).toString(36) + Math.floor(Math.random() * 0xffff).toString(36); }
+  function div(cls) { var d = document.createElement("div"); if (cls) d.className = cls; return d; }
+  // wrap a node in `depth` nested cryptic-class divs (the swamp)
+  function soup(node, depth) {
+    var cur = node;
+    for (var i = 0; i < depth; i++) { var w = div(cx()); w.appendChild(cur); cur = w; }
+    return cur;
+  }
+
+  var answers = { firstName: "", lastName: "", email: "", phone: "", country: "", state: "", source: "", authorized: "" };
+  var root = document.getElementById("form-root");
+  var solved = null;
+
+  // ---- telemetry ----
+  var startedAt = performance.now();
+  var telemetry = { actions: [] };
+  var logEl = document.getElementById("log");
+  function record(type, detail) {
+    telemetry.actions.push({ type: type, detail: detail || null, t: Math.round(performance.now() - startedAt) });
+    logEl.textContent += ((performance.now() - startedAt) / 1000).toFixed(2) + "s  " + type + (detail ? "  " + detail : "") + "\n";
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  // ---- field builders (each buried in div-soup) ----
+  function label(text, req) {
+    var l = document.createElement("label"); l.className = "wd-label"; l.textContent = text;
+    if (req) { var s = document.createElement("span"); s.className = "wd-req"; s.textContent = "*"; l.appendChild(s); }
+    return l;
+  }
+  function fieldWrap(key, labelText, controlNode) {
+    var field = div("wd-field"); field.setAttribute("data-automation-id", "formField-" + key);
+    field.appendChild(label(labelText, REQUIRED.indexOf(key) >= 0));
+    field.appendChild(soup(controlNode, 3)); // 3 nested cryptic divs around every control
+    var err = div("fielderr"); err.id = "err-" + key; err.textContent = "This field is required."; field.appendChild(err);
+    return field;
+  }
+
+  function buildText(key, labelText, type) {
+    var input = document.createElement("input");
+    input.className = "wd-input"; input.type = type || "text"; input.setAttribute("data-automation-id", key);
+    input.autocomplete = "off";
+    input.addEventListener("input", function () { answers[key] = input.value.trim(); record("type", key); afterChange(); });
+    return fieldWrap(key, labelText, input);
+  }
+
+  function buildSelect(key, labelText, getOptions, onPick) {
+    var shell = div("wd-select"); shell.setAttribute("data-automation-id", key);
+    var btn = div("wd-select-button"); btn.setAttribute("role", "button"); btn.tabIndex = 0;
+    btn.setAttribute("aria-haspopup", "listbox"); btn.setAttribute("aria-expanded", "false");
+    btn.setAttribute("data-automation-id", key + "-button");
+    var val = document.createElement("span"); val.className = "wd-select-value placeholder"; val.textContent = "Select One";
+    var chev = div("wd-chevron"); chev.textContent = "▾";
+    // bury the value label in nested spans/divs (nested click target)
+    var valInner = document.createElement("div"); valInner.className = cx(); valInner.appendChild(val);
+    btn.appendChild(valInner); btn.appendChild(chev);
+    var listbox = div("wd-listbox"); listbox.setAttribute("role", "listbox"); listbox.setAttribute("data-automation-id", key + "-listbox");
+    shell.appendChild(btn); shell.appendChild(listbox);
+
+    var disabled = false;
+    function render() {
+      listbox.innerHTML = "";
+      getOptions().forEach(function (name) {
+        var opt = div("wd-opt"); opt.setAttribute("role", "option"); opt.setAttribute("data-value", name);
+        // nested click target: label text lives inside nested span, handler on .wd-opt
+        var inner = document.createElement("div"); inner.className = cx();
+        var span = document.createElement("span"); span.className = "wd-opt-label " + cx(); span.textContent = name;
+        inner.appendChild(span); opt.appendChild(inner);
+        opt.addEventListener("click", function () { pick(name); close(); });
+        listbox.appendChild(opt);
+      });
+    }
+    function open() { if (disabled) return; render(); listbox.classList.add("open"); btn.setAttribute("aria-expanded", "true"); record("open", key); }
+    function close() { listbox.classList.remove("open"); btn.setAttribute("aria-expanded", "false"); }
+    function pick(name) {
+      val.textContent = name; val.classList.remove("placeholder"); answers[key] = name;
+      record("select", key + ":" + name); if (onPick) onPick(name); afterChange();
+    }
+    function setDisabled(d) {
+      disabled = d; btn.classList.toggle("disabled", d);
+      if (d) { val.textContent = "Select One"; val.classList.add("placeholder"); answers[key] = ""; }
+    }
+    btn.addEventListener("click", function () { listbox.classList.contains("open") ? close() : open(); });
+    listbox.addEventListener("scroll", function () { record("scroll", key); });
+    document.addEventListener("click", function (e) { if (!shell.contains(e.target)) close(); });
+
+    var field = fieldWrap(key, labelText, shell);
+    field._api = { setDisabled: setDisabled };
+    return field;
+  }
+
+  function buildRadio(key, labelText, options) {
+    var grp = div("wd-radio-group"); grp.setAttribute("role", "radiogroup"); grp.setAttribute("data-automation-id", key);
+    options.forEach(function (name) {
+      var r = div("wd-radio"); r.setAttribute("role", "radio"); r.setAttribute("data-value", name); r.setAttribute("aria-checked", "false");
+      var inner = document.createElement("div"); inner.className = cx();
+      var span = document.createElement("span"); span.textContent = name; inner.appendChild(span); r.appendChild(inner);
+      r.addEventListener("click", function () {
+        Array.prototype.forEach.call(grp.children, function (c) { c.classList.remove("sel"); c.setAttribute("aria-checked", "false"); });
+        r.classList.add("sel"); r.setAttribute("aria-checked", "true"); answers[key] = name; record("select", key + ":" + name); afterChange();
+      });
+      grp.appendChild(r);
+    });
+    return fieldWrap(key, labelText, grp);
+  }
+
+  // ---- assemble form ----
+  var gName = div(); var gt = div("group-title"); gt.textContent = "Legal Name"; gName.appendChild(gt);
+  gName.appendChild(buildText("firstName", "First Name"));
+  gName.appendChild(buildText("lastName", "Last Name"));
+  root.appendChild(gName);
+
+  var gContact = div(); var gt2 = div("group-title"); gt2.textContent = "Contact"; gContact.appendChild(gt2);
+  gContact.appendChild(buildText("email", "Email", "email"));
+  gContact.appendChild(buildText("phone", "Phone"));
+  root.appendChild(gContact);
+
+  var gAddr = div(); var gt3 = div("group-title"); gt3.textContent = "Address"; gAddr.appendChild(gt3);
+  var stateField;
+  var countryField = buildSelect("country", "Country", function () { return COUNTRIES; }, function (c) {
+    var states = STATES[c] || [];
+    stateField._api.setDisabled(states.length === 0);
+    stateField._states = states;
+  });
+  stateField = buildSelect("state", "State / Province", function () { return stateField._states || []; });
+  stateField._api.setDisabled(true); stateField._states = [];
+  gAddr.appendChild(countryField); gAddr.appendChild(stateField);
+  root.appendChild(gAddr);
+
+  var gMisc = div(); var gt4 = div("group-title"); gt4.textContent = "Application Questions"; gMisc.appendChild(gt4);
+  gMisc.appendChild(buildSelect("source", "How did you hear about us?", function () { return SOURCES; }));
+  gMisc.appendChild(buildRadio("authorized", "Are you legally authorized to work in the US?", ["Yes", "No"]));
+  root.appendChild(gMisc);
+
+  // ---- validation / scoring ----
+  var submit = document.getElementById("submit");
+  var msg = document.getElementById("msg");
+  function values() { return Object.assign({}, answers); }
+  function check() { var v = values(), r = {}; for (var k in TARGET) r[k] = (v[k] || "") === TARGET[k]; return r; }
+  function allRequiredPresent() { return REQUIRED.every(function (k) { return (answers[k] || "") !== ""; }); }
+  function afterChange() {
+    var ok = allRequiredPresent();
+    submit.setAttribute("aria-disabled", ok ? "false" : "true");
+  }
+  submit.addEventListener("click", function () {
+    if (submit.getAttribute("aria-disabled") === "true") { record("submit-blocked"); return; }
+    record("submit");
+    var r = check(), allCorrect = Object.keys(r).every(function (k) { return r[k]; });
+    REQUIRED.forEach(function (k) { var e = document.getElementById("err-" + k); if (e) e.classList.toggle("show", !r[k]); });
+    if (allCorrect) {
+      solved = { ms: Math.round(performance.now() - startedAt), actions: telemetry.actions.length, values: values() };
+      window.FIXTURE.solved = solved;
+      msg.className = "msg ok"; msg.textContent = "✓ Submitted — application complete.";
+      var s = document.getElementById("status"); s.textContent = "submitted ✓"; s.className = "pill ok";
+      record("solved", solved.actions + " actions / " + solved.ms + "ms");
+    } else {
+      var wrong = Object.keys(r).filter(function (k) { return !r[k]; });
+      msg.className = "msg err"; msg.textContent = "Some answers are incorrect: " + wrong.join(", ");
+      record("submit-incorrect", wrong.join(","));
+    }
+  });
+
+  // ---- harness API ----
+  window.FIXTURE = { target: TARGET, required: REQUIRED, values: values, check: check, solved: null, telemetry: telemetry, reset: function () { location.reload(); } };
+})();
+</script>
+</body>
+</html>
