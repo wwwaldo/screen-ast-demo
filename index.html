@@ -1,0 +1,308 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>screen-ast · country dropdown test case</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --ink: #14161a; --muted: #6b7280;
+    --line: #e4e7ec; --accent: #2563eb; --ok: #16a34a; --warn: #b45309;
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#0d0f12; --card:#16191e; --ink:#e8eaed; --muted:#9aa2ad;
+            --line:#252a31; --accent:#5b8cff; --ok:#4ade80; --warn:#f5b567; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: var(--sans); background: var(--bg); color: var(--ink);
+         line-height: 1.5; padding: 32px 20px 80px; }
+  .wrap { max-width: 1080px; margin: 0 auto; }
+  h1 { font-size: 20px; margin: 0 0 4px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); font-size: 14px; margin: 0 0 20px; }
+  .goal { display: inline-flex; align-items: center; gap: 8px; background: var(--card);
+          border: 1px solid var(--line); border-radius: 999px; padding: 6px 14px;
+          font-size: 14px; margin-bottom: 24px; }
+  .goal b { color: var(--accent); }
+  .pill { font-family: var(--mono); font-size: 12px; padding: 2px 8px; border-radius: 6px;
+          background: var(--line); color: var(--muted); }
+  .pill.ok { background: color-mix(in srgb, var(--ok) 22%, transparent); color: var(--ok); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 18px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+          padding: 18px; display: flex; flex-direction: column; gap: 12px; }
+  .card h2 { font-size: 15px; margin: 0; display: flex; align-items: center; gap: 8px; }
+  .tag { font-size: 11px; font-family: var(--mono); padding: 2px 7px; border-radius: 6px;
+         border: 1px solid var(--line); color: var(--muted); }
+  .tag.easy { color: var(--ok); border-color: color-mix(in srgb, var(--ok) 40%, var(--line)); }
+  .tag.hard { color: var(--warn); border-color: color-mix(in srgb, var(--warn) 40%, var(--line)); }
+  .desc { font-size: 12.5px; color: var(--muted); margin: -2px 0 4px; min-height: 34px; }
+  label.fld { font-size: 12px; color: var(--muted); font-weight: 600; text-transform: uppercase;
+              letter-spacing: 0.04em; }
+  select { width: 100%; padding: 10px 12px; font-size: 14px; border: 1px solid var(--line);
+           border-radius: 9px; background: var(--bg); color: var(--ink); font-family: var(--sans); }
+  .result { font-family: var(--mono); font-size: 12.5px; padding: 8px 10px; border-radius: 8px;
+            background: var(--bg); border: 1px dashed var(--line); color: var(--muted); }
+  .result.ok { color: var(--ok); border-style: solid;
+               border-color: color-mix(in srgb, var(--ok) 45%, var(--line)); }
+
+  /* custom + virtualized combobox */
+  .combo { position: relative; }
+  .combo-btn { width: 100%; text-align: left; padding: 10px 12px; font-size: 14px;
+               border: 1px solid var(--line); border-radius: 9px; background: var(--bg);
+               color: var(--ink); cursor: pointer; display: flex; justify-content: space-between;
+               align-items: center; font-family: var(--sans); }
+  .combo-btn[aria-expanded="true"] { border-color: var(--accent); }
+  .combo-btn .chev { color: var(--muted); transition: transform .15s; }
+  .combo-btn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .listbox { position: absolute; z-index: 20; top: calc(100% + 4px); left: 0; right: 0;
+             max-height: 260px; overflow-y: auto; background: var(--card);
+             border: 1px solid var(--line); border-radius: 10px; box-shadow: 0 12px 32px rgba(0,0,0,.18);
+             display: none; }
+  .listbox.open { display: block; }
+  .opt { padding: 9px 12px; font-size: 14px; cursor: pointer; height: 36px; line-height: 18px;
+         white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .opt:hover, .opt.active { background: color-mix(in srgb, var(--accent) 14%, transparent); }
+  .vport { position: relative; } /* virtualized inner spacer host */
+
+  footer { margin-top: 28px; }
+  .telem { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px 18px; }
+  .telem-head { display: flex; align-items: center; justify-content: space-between; gap: 12px;
+                flex-wrap: wrap; margin-bottom: 10px; }
+  .metrics { display: flex; gap: 22px; flex-wrap: wrap; font-family: var(--mono); font-size: 13px; }
+  .metrics span b { font-size: 18px; }
+  button.reset { font-family: var(--sans); font-size: 13px; padding: 7px 14px; border-radius: 8px;
+                 border: 1px solid var(--line); background: var(--bg); color: var(--ink); cursor: pointer; }
+  .log { font-family: var(--mono); font-size: 11.5px; color: var(--muted); max-height: 150px;
+         overflow-y: auto; border-top: 1px solid var(--line); padding-top: 10px; margin-top: 4px;
+         white-space: pre; }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
+  code { font-family: var(--mono); background: var(--line); padding: 1px 5px; border-radius: 5px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>screen-ast · country dropdown test case</h1>
+  <p class="sub">v0 benchmark fixture (§9.1). Same task, three difficulty tiers. Instrumented so a harness can count actions &amp; wall-clock.</p>
+
+  <div class="goal">🎯 Task: select <b id="goal-country">United States</b>
+    <span class="pill" id="status">unsolved</span>
+  </div>
+
+  <div class="grid">
+    <!-- Tier 1: native -->
+    <section class="card" data-variant="native">
+      <h2>Native <span class="tag easy">easy</span></h2>
+      <p class="desc">Real <code>&lt;select&gt;</code>. Browser handles rendering + typeahead. The friendly end — imagination is trivially reliable.</p>
+      <label class="fld" for="native">Country</label>
+      <select id="native" aria-label="Country (native)">
+        <option value="" disabled selected>Select a country…</option>
+      </select>
+      <div class="result" id="res-native">no selection</div>
+    </section>
+
+    <!-- Tier 2: custom, all options in DOM, scroll-hunt -->
+    <section class="card" data-variant="custom">
+      <h2>Custom <span class="tag">scroll-hunt</span></h2>
+      <p class="desc">Div combobox. Click to open, alphabetical, scrollable. All options in the DOM, but far ones aren't visible until scrolled. Click-only → forces scroll.</p>
+      <label class="fld">Country</label>
+      <div class="combo" id="combo-custom">
+        <button class="combo-btn" id="btn-custom" aria-haspopup="listbox" aria-expanded="false">
+          <span class="val">Select a country…</span><span class="chev">▾</span>
+        </button>
+        <div class="listbox" id="list-custom" role="listbox" aria-label="Country (custom)"></div>
+      </div>
+      <div class="result" id="res-custom">no selection</div>
+    </section>
+
+    <!-- Tier 3: virtualized -->
+    <section class="card" data-variant="virtual">
+      <h2>Virtualized <span class="tag hard">hard</span></h2>
+      <p class="desc">Windowed rendering: off-screen options are <i>not in the DOM at all</i> until scrolled near. Vision can't see them; DOM query can't find them. The pure-perception limit.</p>
+      <label class="fld">Country</label>
+      <div class="combo" id="combo-virtual">
+        <button class="combo-btn" id="btn-virtual" aria-haspopup="listbox" aria-expanded="false">
+          <span class="val">Select a country…</span><span class="chev">▾</span>
+        </button>
+        <div class="listbox" id="list-virtual" role="listbox" aria-label="Country (virtualized)">
+          <div class="vport" id="vport-virtual"></div>
+        </div>
+      </div>
+      <div class="result" id="res-virtual">no selection</div>
+    </section>
+  </div>
+
+  <footer>
+    <div class="telem">
+      <div class="telem-head">
+        <div class="metrics">
+          <span>actions <b id="m-actions">0</b></span>
+          <span>elapsed <b id="m-elapsed">0.0</b>s</span>
+          <span>opens <b id="m-opens">0</b></span>
+          <span>scrolls <b id="m-scrolls">0</b></span>
+        </div>
+        <button class="reset" id="reset">reset</button>
+      </div>
+      <div class="log" id="log">telemetry log — interactions appear here…</div>
+      <p class="hint">Harness API on <code>window.FIXTURE</code>: <code>.target</code>, <code>.countries</code>,
+        <code>.telemetry</code>, <code>.solved</code>, <code>.reset()</code>, <code>.indexOf(name)</code>.
+        Override target via <code>?target=Japan</code>.</p>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  var COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo (Congo-Brazzaville)","Costa Rica","Croatia","Cuba","Cyprus","Czechia","Democratic Republic of the Congo","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+
+  var params = new URLSearchParams(location.search);
+  var TARGET = params.get("target") || "United States";
+  document.getElementById("goal-country").textContent = TARGET;
+
+  // ---- telemetry ----
+  var startedAt = performance.now();
+  var telemetry = { actions: [], opens: 0, scrolls: 0 };
+  var logEl = document.getElementById("log");
+  var solved = null;
+
+  function fmt(t) { return ((t - startedAt) / 1000).toFixed(2); }
+  function record(type, detail) {
+    var e = { type: type, detail: detail || null, t: Math.round(performance.now() - startedAt) };
+    telemetry.actions.push(e);
+    if (type === "open") telemetry.opens++;
+    if (type === "scroll") telemetry.scrolls++;
+    document.getElementById("m-actions").textContent = telemetry.actions.length;
+    document.getElementById("m-opens").textContent = telemetry.opens;
+    document.getElementById("m-scrolls").textContent = telemetry.scrolls;
+    var line = fmt(performance.now()) + "s  " + type + (detail ? "  " + detail : "");
+    logEl.textContent = (logEl.textContent === "telemetry log — interactions appear here…" ? "" : logEl.textContent + "\n") + line;
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+  setInterval(function () {
+    if (!solved) document.getElementById("m-elapsed").textContent = fmt(performance.now());
+  }, 100);
+
+  function selectCountry(variant, value) {
+    var res = document.getElementById("res-" + variant);
+    var correct = value === TARGET;
+    res.textContent = value + (correct ? "  ✓ correct" : "  (target: " + TARGET + ")");
+    res.classList.toggle("ok", correct);
+    record("select", variant + ":" + value);
+    if (correct && !solved) {
+      solved = { variant: variant, value: value, actions: telemetry.actions.length,
+                 opens: telemetry.opens, scrolls: telemetry.scrolls,
+                 ms: Math.round(performance.now() - startedAt) };
+      var s = document.getElementById("status");
+      s.textContent = "solved · " + variant + " · " + solved.actions + " actions · " + fmt(performance.now()) + "s";
+      s.classList.add("ok");
+      window.FIXTURE.solved = solved;
+      record("solved", variant + " in " + solved.actions + " actions");
+    }
+  }
+
+  // ---- tier 1: native ----
+  var nativeSel = document.getElementById("native");
+  COUNTRIES.forEach(function (c) {
+    var o = document.createElement("option"); o.value = c; o.textContent = c; nativeSel.appendChild(o);
+  });
+  nativeSel.addEventListener("change", function () { selectCountry("native", nativeSel.value); });
+
+  // ---- generic combo open/close plumbing ----
+  function wireCombo(id, onOpen) {
+    var combo = document.getElementById("combo-" + id);
+    var btn = document.getElementById("btn-" + id);
+    var list = document.getElementById("list-" + id);
+    function open() {
+      if (list.classList.contains("open")) return;
+      list.classList.add("open"); btn.setAttribute("aria-expanded", "true");
+      record("open", id); if (onOpen) onOpen(list);
+    }
+    function close() {
+      list.classList.remove("open"); btn.setAttribute("aria-expanded", "false");
+    }
+    btn.addEventListener("click", function () {
+      list.classList.contains("open") ? close() : open();
+    });
+    document.addEventListener("click", function (ev) {
+      if (!combo.contains(ev.target)) close();
+    });
+    list.addEventListener("scroll", function () { record("scroll", id + "@" + Math.round(list.scrollTop)); });
+    return { btn: btn, list: list, close: close };
+  }
+
+  // ---- tier 2: custom (all options in DOM) ----
+  var custom = wireCombo("custom");
+  COUNTRIES.forEach(function (c) {
+    var o = document.createElement("div");
+    o.className = "opt"; o.setAttribute("role", "option"); o.textContent = c; o.dataset.value = c;
+    o.addEventListener("click", function () {
+      custom.btn.querySelector(".val").textContent = c;
+      selectCountry("custom", c); custom.close();
+    });
+    custom.list.appendChild(o);
+  });
+
+  // ---- tier 3: virtualized (windowed rendering) ----
+  var ROW_H = 36, BUFFER = 4, VIEW_H = 260;
+  var virt = wireCombo("virtual", renderVirtual);
+  var vport = document.getElementById("vport-virtual");
+  vport.style.height = (COUNTRIES.length * ROW_H) + "px";
+  function renderVirtual() {
+    var scrollTop = virt.list.scrollTop;
+    var first = Math.max(0, Math.floor(scrollTop / ROW_H) - BUFFER);
+    var last = Math.min(COUNTRIES.length, Math.ceil((scrollTop + VIEW_H) / ROW_H) + BUFFER);
+    vport.innerHTML = ""; // off-window options genuinely leave the DOM
+    for (var i = first; i < last; i++) {
+      (function (i) {
+        var c = COUNTRIES[i];
+        var o = document.createElement("div");
+        o.className = "opt"; o.setAttribute("role", "option"); o.textContent = c; o.dataset.value = c;
+        o.dataset.index = i;
+        o.style.position = "absolute"; o.style.top = (i * ROW_H) + "px"; o.style.left = "0"; o.style.right = "0";
+        o.addEventListener("click", function () {
+          virt.btn.querySelector(".val").textContent = c;
+          selectCountry("virtual", c); virt.close();
+        });
+        vport.appendChild(o);
+      })(i);
+    }
+  }
+  virt.list.addEventListener("scroll", renderVirtual);
+
+  // ---- reset ----
+  document.getElementById("reset").addEventListener("click", function () { location.reload(); });
+
+  // ---- soft reset: clear the global latch + telemetry between variants, WITHOUT a page
+  // reload and WITHOUT wiping already-solved variants. Each variant's selection stays
+  // visible (native <select> value, custom/virtual button label + ✅ readout) so you can
+  // watch the results build up. Only global state that would block the next variant from
+  // registering is cleared. ----
+  function softReset() {
+    solved = null;                 // release the global solve latch so the next variant registers
+    window.FIXTURE.solved = null;
+    telemetry.actions.length = 0; telemetry.opens = 0; telemetry.scrolls = 0;
+    startedAt = performance.now(); // fresh per-variant timer
+    document.getElementById("m-actions").textContent = "0";
+    document.getElementById("m-opens").textContent = "0";
+    document.getElementById("m-scrolls").textContent = "0";
+    document.getElementById("m-elapsed").textContent = "0.0";
+    logEl.textContent = "telemetry log — interactions appear here…";
+    // status pill left as-is; per-variant ✅ readouts and control values intentionally kept.
+  }
+
+  // ---- harness API ----
+  window.FIXTURE = {
+    target: TARGET,
+    countries: COUNTRIES,
+    telemetry: telemetry,
+    solved: null,
+    reset: function () { location.reload(); },
+    softReset: softReset,
+    indexOf: function (name) { return COUNTRIES.indexOf(name); }
+  };
+})();
+</script>
+</body>
+</html>
